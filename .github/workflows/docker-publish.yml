@@ -31,7 +31,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write   # required for ghcr.io push
+      packages: write      # required for ghcr.io push
+      id-token: write      # required for attestation / GHCR auth
 
     steps:
       # ── Checkout ────────────────────────────────────────────────────────────
