@@ -22,7 +22,7 @@ on:
   workflow_dispatch:  # allow manual trigger from GitHub Actions UI
 
 env:
-  DOCKERHUB_IMAGE: netfoundry/autonomous-router
+  DOCKERHUB_IMAGE: nicfragale/autonomous-router
   GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/autonomous-router
 
 jobs:
