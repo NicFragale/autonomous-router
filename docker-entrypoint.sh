@@ -241,10 +241,6 @@ SUBFX_dns_detect_fallback() {
     dns=$(awk '/^nameserver/ && $2!~/^127\./ {print $2; exit}' \
         /run/systemd/resolve/resolv.conf 2>/dev/null)
     [[ -n "${dns}" ]] && { echo "${dns}"; return; }
-    # Fallback: parse resolvectl dns (requires D-Bus/varlink socket to be ready)
-    dns=$(resolvectl dns 2>/dev/null \
-        | awk -F': *' 'NF>1 && $2~/^[1-9]/ && $2!~/^127\./ { print $2; exit }')
-    [[ -n "${dns}" ]] && { echo "${dns}"; return; }
     dns=$(awk '/^nameserver/ && $2 !~ /^127\./ {print $2; exit}' /etc/resolv.conf 2>/dev/null)
     [[ -n "${dns}" ]] && { echo "${dns}"; return; }
     echo "1.1.1.1"
@@ -302,13 +298,9 @@ EOF
 
     if systemctl restart systemd-resolved 2>/dev/null; then
         ok "systemd-resolved restarted"
-    elif resolvectl reload 2>/dev/null; then
-        ok "systemd-resolved reloaded"
     else
-        warn "Could not reload systemd-resolved automatically."
+        warn "Could not restart systemd-resolved — mount /run/systemd:/run/systemd and ensure pid: host"
     fi
-    # Flush the cache so stale pre-Ziti answers don't survive the resolver switch.
-    resolvectl flush-caches 2>/dev/null && ok "DNS cache flushed" || true
 }
 
 SUBFX_dns_update_config_yaml() {
@@ -386,14 +378,10 @@ FX_remove_dns_conf() {
 
     if systemctl restart systemd-resolved 2>/dev/null; then
         ok "systemd-resolved restarted — host DNS restored"
-    elif resolvectl reload 2>/dev/null; then
-        ok "systemd-resolved reloaded via resolvectl"
     else
         warn "Could not restart systemd-resolved; host DNS config may still reference Ziti."
         warn "Run: sudo systemctl restart systemd-resolved"
     fi
-    # Flush the cache so stale Ziti overlay answers don't survive after shutdown.
-    resolvectl flush-caches 2>/dev/null && ok "DNS cache flushed" || true
 }
 
 FX_configure_ziti_dns() {
@@ -797,10 +785,9 @@ if [[ -f "${_RESOLVED_CONF}" && ! -f "${_DNS_CONF_SENTINEL}" ]]; then
     rm -f "${_RESOLVED_CONF}"
     if systemctl restart systemd-resolved 2>/dev/null; then
         ok "systemd-resolved restarted — stale Ziti DNS config cleared"
-    elif resolvectl reload 2>/dev/null; then
-        ok "systemd-resolved reloaded — stale Ziti DNS config cleared"
+    else
+        warn "Could not restart systemd-resolved — stale config may still be active"
     fi
-    resolvectl flush-caches 2>/dev/null || true
 fi
 
 ############### Post-launch: DNS configuration ###############
