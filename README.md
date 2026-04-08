@@ -124,4 +124,4 @@ ghcr.io/nicfragale/autonomous-router:latest
 
 ### Startup & DNS Flow
 
-![Autonomous Edge Router Flow](flow.png)
+![Autonomous Edge Router Flow](flow.jpg)
