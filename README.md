@@ -56,6 +56,7 @@ All settings are controlled via environment variables in your `.env` file. The c
 
 | Variable | Default | Description |
 |---|---|---|
+| `ZITI_CONTAINER_NAME` | `autonomous-er` | Name for the container |
 | `REG_KEY` | *(required on first run)* | NetFoundry registration key |
 | `TUNNEL_MODE` | `auto` | Ziti tunnel mode (`auto` recommended) |
 | `DISABLE_AUTO_UPDATE` | `true` | Prevent mid-run Ziti binary upgrades |

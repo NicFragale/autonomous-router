@@ -10,8 +10,8 @@
 #   docker build -t netfoundry/autonomous-router:local .
 
 services:
-  autonomous-er:
-    container_name: netfoundry-er
+  autonomous-router:
+    container_name: ${ZITI_CONTAINER_NAME:-autonomous-router}
     # Pull published image instead with:
     # image: netfoundry/autonomous-router:latest
     # build: .
