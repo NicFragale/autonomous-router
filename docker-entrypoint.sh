@@ -75,12 +75,40 @@ VERSION="2.0"
 
 set -eo pipefail
 
+SystemLogo='
+    _   __     __  ______                      __
+   / | / /__  / /_/ ____/___  __  ______  ____/ /______  __
+  /  |/ / _ \/ __/ /_  / __ \/ / / / __ \/ __  / ___/ / / /
+ / /|  /  __/ /_/ __/ / /_/ / /_/ / / / / /_/ / /  / /_/ /
+/_/ |_/\___/\__/_/    \____/\__,_/_/ /_/\__,_/_/   \__, /
+                                                  /____/
+                    __________ ____     
+                   /     ____// __ \    
+                  / /|  __/  / /_/ /    
+                 / __  /___ / _, _/     
+                /_/ /_____//_/ |_|     						  
+
+' # Logo.
+
 ############### Logging ###############
 
 log()  { echo "[AER-LOG ] $*"; }
 ok()   { echo "[AER-OK  ] $*"; }
 warn() { echo "[AER-WARN] $*" >&2; }
 err()  { echo "[AER-ERR ] $*" >&2; exit 1; }
+logo() {
+    # Ensure the logo lines are congruent, then print.
+    while IFS=$'\n' read -r EachLine; do
+        [[ ${#EachLine} -gt ${MaxLogoLine} ]] \
+            && MaxLogoLine="${#EachLine}"
+        [[ ${#EachLine} -ne 0 ]] && [[ ${#EachLine} -lt ${MinLogoLine} ]] \
+            && MinLogoLine="${#EachLine}"
+    done < <(printf '%s\n' "${SystemLogo}")
+
+    while IFS=$'\n' read -r EachLine; do
+	printf "%-${MaxLogoLine}s\n" "${EachLine}"
+    done < <(printf "%s\n" "${SystemLogo}")    
+}
 
 ############### Registration ###############
 
@@ -634,6 +662,7 @@ FX_shutdown() {
 
 ############### Main ###############
 
+logo
 echo "NetFoundry Autonomous Edge Router — entrypoint v${VERSION}"
 
 cd /etc/netfoundry/
