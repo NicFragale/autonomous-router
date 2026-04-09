@@ -71,10 +71,9 @@
 #                          to your compose volumes:
 #                            - /etc/hosts:/etc/hosts
 
-VERSION="2.0"
-
 set -eo pipefail
 
+VERSION="2.0"
 SystemLogo='
     _   __     __  ______                      __
    / | / /__  / /_/ ____/___  __  ______  ____/ /______  __
@@ -82,11 +81,11 @@ SystemLogo='
  / /|  /  __/ /_/ __/ / /_/ / /_/ / / / / /_/ / /  / /_/ /
 /_/ |_/\___/\__/_/    \____/\__,_/_/ /_/\__,_/_/   \__, /
                                                   /____/
-                    __________ ____     
-                   /     ____// __ \    
-                  / /|  __/  / /_/ /    
-                 / __  /___ / _, _/     
-                /_/ /_____//_/ |_|     						  
+                    __________ ____
+                   /     ____// __ \
+                  / /|  __/  / /_/ /
+                 / __  /___ / _, _/
+                /_/ /_____//_/ |_|
 
 ' # Logo.
 
@@ -107,7 +106,7 @@ logo() {
 
     while IFS=$'\n' read -r EachLine; do
 	printf "%-${MaxLogoLine}s\n" "${EachLine}"
-    done < <(printf "%s\n" "${SystemLogo}")    
+    done < <(printf "%s\n" "${SystemLogo}")
 }
 
 ############### Registration ###############
