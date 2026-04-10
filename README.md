@@ -54,28 +54,58 @@ docker compose logs -f
 
 All settings are controlled via environment variables in your `.env` file. The compose file provides defaults for everything except `REG_KEY`.
 
+### General
+
 | Variable | Default | Description |
 |---|---|---|
-| `ZITI_CONTAINER_NAME` | `autonomous-er` | Name for the container |
-| `REG_KEY` | *(required on first run)* | NetFoundry registration key |
-| `TUNNEL_MODE` | `auto` | Ziti tunnel mode (`auto` recommended) |
-| `DISABLE_AUTO_UPDATE` | `true` | Prevent mid-run Ziti binary upgrades |
-| `ZITI_VERSION_OVERRIDE` | *(unset)* | Pin a specific Ziti version e.g. `v1.7.2` |
-| `ZITI_DNS_RANGE` | `100.65.0.0/24` | IP range for overlay service addresses |
-| `ZITI_DNS_UPSTREAM` | `udp://1.1.1.1:53` | Upstream resolver inside Ziti config |
-| `ZITI_DNS_FALLBACK` | `1.1.1.1` | Fallback resolver if Ziti DNS can't answer |
-| `HOSTS_ENTRIES` | `INTERFACE_ASSIGNED` | Static `/etc/hosts` injection (see below) |
+| `ZITI_CONTAINER_NAME` | `autonomous-router` | Docker container name. Set this in your `.env` to give the container a custom name. |
+| `REG_KEY` | *(required on first run)* | NetFoundry registration key. Ignored once `certs/cert.pem` exists. |
+| `TUNNEL_MODE` | `auto` | Ziti tunnel mode. `auto` lets Ziti choose; leave unset for host-only mode. |
+| `VERBOSE` | *(unset)* | Set to any non-empty value to pass `-v` to `ziti router run`. |
+| `HTTPS_PROXY` | *(unset)* | Proxy URL for outbound connections e.g. `http://proxy.corp:3128`. |
+| `ADVERTISE_ADDRESS` | *(unset)* | Override the advertised edge listener address. Required when the host's public IP differs from its LAN IP. Format: `IP:PORT` e.g. `203.0.113.10:443`. |
 
-### HOSTS_ENTRIES
+### Update Control
 
-Controls what gets injected into `/etc/hosts` before Ziti starts. These entries are resolved locally by the OS and are **never** forwarded to the overlay.
+| Variable | Default | Description |
+|---|---|---|
+| `DISABLE_AUTO_UPDATE` | `true` | Set to `true` to skip controller-version checks entirely. Ziti starts once and runs until the container stops. The crash-restart supervisor still runs. |
+| `ZITI_VERSION_OVERRIDE` | *(unset)* | Pin the router binary to a specific version, bypassing all version-match checks. Format: `vMAJOR.MINOR.PATCH` e.g. `v1.7.2`. Setting both this and `DISABLE_AUTO_UPDATE=true` gives a fully static, no-loop deployment. |
+
+### DNS Setup (`ZITI_DNS_CONFIGURE=true`)
+
+| Variable | Default | Description |
+|---|---|---|
+| `ZITI_DNS_CONFIGURE` | *(unset)* | Set to `true` to enable DNS setup at startup. Writes a systemd-resolved drop-in and restarts resolved. Requires the `systemd` volume mounts below. |
+| `ZITI_DNS_MODE` | *(unset)* | `all` — route **every** DNS query through Ziti DNS (recommended). `domains` — route only the domains listed in `ZITI_DNS_DOMAINS`. |
+| `ZITI_DNS_DOMAINS` | *(unset)* | Space-separated list of domains to route through Ziti DNS. Only used when `ZITI_DNS_MODE=domains`. e.g. `lan ziti corp internal`. |
+| `ZITI_DNS_IP` | *(auto-detected)* | IP address of the Ziti DNS server. Auto-detected from the host's default LAN route when unset. |
+| `ZITI_DNS_FALLBACK` | `1.1.1.1` | Fallback resolver written into the systemd-resolved drop-in for queries Ziti DNS cannot answer. Auto-detected from the host's current resolver when unset. |
+| `ZITI_DNS_DISABLE_MDNS` | *(unset)* | Set to `true` to add `MulticastDNS=no` to the resolved drop-in. Required when your DNS server serves `.local` records — without this, systemd-resolved intercepts `.local` on the mDNS stack (RFC 6762) before the query ever reaches Ziti DNS, returning SERVFAIL. |
+| `ZITI_DNS_WAIT_TIMEOUT` | `60` | Seconds to wait for Ziti DNS to become reachable after Ziti starts. Increase if your controller is slow to provision the DNS listener. |
+| `ZITI_DNS_HEALTH_THRSH` | `3` | Consecutive failed DNS probes before the resolver reverts to host DNS and Ziti is restarted. Each probe runs once per supervisor loop iteration (~60 s), so the default triggers after ~3 min of unresponsive Ziti DNS. |
+
+### Ziti Config Patches (independent of `ZITI_DNS_CONFIGURE`)
+
+| Variable | Default | Description |
+|---|---|---|
+| `ZITI_DNS_RANGE` | `100.65.0.0/24` | CIDR written into `config.yml` as `dnsSvcIpRange` (overlay service address pool). |
+| `ZITI_DNS_UPSTREAM` | `udp://1.1.1.1:53` | Upstream DNS written into `config.yml` as `dnsUpstream` (used by the Ziti DNS server for non-overlay lookups). |
+
+### Hosts Injection
+
+| Variable | Default | Description |
+|---|---|---|
+| `HOSTS_ENTRIES` | `INTERFACE_ASSIGNED` | Static records injected into `/etc/hosts` before Ziti starts. Resolved locally by the OS — never forwarded to the overlay. Separated by semicolons or newlines. Block is removed automatically on container shutdown. To modify the **host's** `/etc/hosts` (not just the container's), add `- /etc/hosts:/etc/hosts` to your compose volumes. |
+
+**Supported `HOSTS_ENTRIES` formats:**
 
 | Format | Example | Behavior |
 |---|---|---|
-| IP + hostname | `192.168.1.10 db.internal` | Written as-is |
-| Hostname only | `myhost.corp` | Forward DNS lookup, resolved IP written |
-| IP only | `10.20.30.84` | Reverse PTR lookup, all records written |
-| `INTERFACE_ASSIGNED` | *(default)* | Auto-detects host LAN IP + reverse lookup |
+| IP + hostname | `192.168.1.10 db.internal alias` | Written as-is |
+| Hostname only | `myhost.corp` | Forward DNS lookup before Ziti starts; resolved IP is written |
+| IP only | `10.20.30.84` | Reverse PTR lookup; all PTR records written as aliases |
+| `INTERFACE_ASSIGNED` | *(default)* | Auto-detects host LAN IP at runtime, then reverse-lookups it |
 
 ---
 
