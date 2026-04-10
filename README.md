@@ -60,7 +60,7 @@ All settings are controlled via environment variables in your `.env` file. The c
 |---|---|---|
 | `ZITI_CONTAINER_NAME` | `autonomous-router` | Docker container name. Set this in your `.env` to give the container a custom name. |
 | `REG_KEY` | *(required on first run)* | NetFoundry registration key. Ignored once `certs/cert.pem` exists. |
-| `TUNNEL_MODE` | `auto` | Ziti tunnel mode. `auto` enables the tunnel listener (required for DNS routing). Leave unset for host-only mode. **Note:** this is written into `config.yml` at registration time. Changing it after the router is already registered has no effect — delete `./ziti_router` and re-register with a new key to apply the change. |
+| `TUNNEL_MODE` | `auto` | Ziti tunnel mode. `auto` enables the tunnel listener (required for DNS routing). Set to `host` or unset for host-only mode. **Note:** this is written into `config.yml` at registration time. Changing it after the router is already registered has no effect — delete `./ziti_router` and re-register with a new key to apply the change. |
 | `VERBOSE` | *(unset)* | Set to any non-empty value to pass `-v` to `ziti router run`. |
 | `HTTPS_PROXY` | *(unset)* | Proxy URL for outbound connections e.g. `http://proxy.corp:3128`. |
 | `ADVERTISE_ADDRESS` | *(unset)* | Override the advertised edge listener address. Required when the host's public IP differs from its LAN IP. Format: `IP:PORT` e.g. `203.0.113.10:443`. |

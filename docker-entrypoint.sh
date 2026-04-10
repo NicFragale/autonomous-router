@@ -824,8 +824,10 @@ if [[ "${_DNS_ACTIVE}" == "true" ]]; then
 fi
 
 ############### Pre-launch: /etc/hosts injection ###############
+# Only active in tunnel mode — in host mode Ziti does not intercept DNS so
+# there is no need to pre-seed /etc/hosts to bypass the overlay.
 
-if [[ -n "${HOSTS_ENTRIES:-}" ]]; then
+if [[ "${_DNS_ACTIVE}" == "true" && -n "${HOSTS_ENTRIES:-}" ]]; then
     FX_inject_hosts
 fi
 
