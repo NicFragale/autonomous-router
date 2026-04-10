@@ -95,12 +95,12 @@ services:
 
       # Ziti DNS server IP.  Auto-detected from the host's default LAN route
       #   when left unset (usually correct, but set explicitly if needed).
-      #- ZITI_DNS_IP=10.20.30.84
+      #- ZITI_DNS_IP=
+      - ZITI_DNS_IP=${ZITI_DNS_IP:-}
 
       # Fallback resolver when Ziti can't answer a query.
       #   Auto-detected from the host's current resolver when left unset.
-      #- ZITI_DNS_FALLBACK=1.1.1.1
-      - ZITI_DNS_FALLBACK=${ZITI_DNS_FALLBACK:-1.1.1.1}
+      - ZITI_DNS_FALLBACK=${ZITI_DNS_FALLBACK:-}
 
       ## mDNS OVERRIDE ##
       #  Set to true if your DNS server serves .local records and you're getting
@@ -114,7 +114,13 @@ services:
       #   ZITI_DNS_CONFIGURE=true is NOT required for these two as they work
       #   independently and only need yq (included in the image).
       - ZITI_DNS_RANGE=${ZITI_DNS_RANGE:-100.65.0.0/24}
-      - ZITI_DNS_UPSTREAM=${ZITI_DNS_UPSTREAM:-udp://1.1.1.1:53}
+
+      # Upstream DNS written into config.yml dnsUpstream.
+      #   Auto-detected from the host's current resolver when unset.
+      #   IMPORTANT: when set explicitly, format MUST include protocol and port:
+      #     udp://IP:PORT  or  tcp://IP:PORT  — e.g. udp://1.1.1.1:53
+      #- ZITI_DNS_UPSTREAM=udp://1.1.1.1:53
+      - ZITI_DNS_UPSTREAM=${ZITI_DNS_UPSTREAM:-}
 
       ## STATIC /etc/hosts INJECTION ##
       # Inject records into /etc/hosts before ziti starts.  Resolved locally by

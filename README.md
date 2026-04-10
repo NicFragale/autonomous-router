@@ -80,7 +80,7 @@ All settings are controlled via environment variables in your `.env` file. The c
 | `ZITI_DNS_MODE` | `all` | `all` — route **every** DNS query through Ziti DNS (recommended). `domains` — route only the domains listed in `ZITI_DNS_DOMAINS`. |
 | `ZITI_DNS_DOMAINS` | *(unset)* | Space-separated list of domains to route through Ziti DNS. Only used when `ZITI_DNS_MODE=domains`. e.g. `lan ziti corp internal`. |
 | `ZITI_DNS_IP` | *(auto-detected)* | IP address of the Ziti DNS server. Auto-detected from the host's default LAN route when unset. |
-| `ZITI_DNS_FALLBACK` | `1.1.1.1` | Fallback resolver written into the systemd-resolved drop-in for queries Ziti DNS cannot answer. Auto-detected from the host's current resolver when unset. |
+| `ZITI_DNS_FALLBACK` | *(unset)* | Fallback resolver written into the systemd-resolved drop-in for queries Ziti DNS cannot answer. Auto-detected from the host's current resolver when unset. |
 | `ZITI_DNS_DISABLE_MDNS` | `false` | Set to `true` to add `MulticastDNS=no` to the resolved drop-in. Required when your DNS server serves `.local` records — without this, systemd-resolved intercepts `.local` on the mDNS stack (RFC 6762) before the query ever reaches Ziti DNS, returning SERVFAIL. |
 | `ZITI_DNS_WAIT_TIMEOUT` | `60` | Seconds to wait for Ziti DNS to become reachable after Ziti starts. Increase if your controller is slow to provision the DNS listener. |
 | `ZITI_DNS_HEALTH_THRSH` | `3` | Consecutive failed DNS probes before the resolver reverts to host DNS and Ziti is restarted. Each probe runs once per supervisor loop iteration (~60 s), so the default triggers after ~3 min of unresponsive Ziti DNS. |
@@ -90,7 +90,7 @@ All settings are controlled via environment variables in your `.env` file. The c
 | Variable | Default | Description |
 |---|---|---|
 | `ZITI_DNS_RANGE` | `100.65.0.0/24` | CIDR written into `config.yml` as `dnsSvcIpRange` (overlay service address pool). |
-| `ZITI_DNS_UPSTREAM` | `udp://1.1.1.1:53` | Upstream DNS written into `config.yml` as `dnsUpstream` (used by the Ziti DNS server for non-overlay lookups). |
+| `ZITI_DNS_UPSTREAM` | *(auto-detected)* | Upstream DNS written into `config.yml` as `dnsUpstream` (used by the Ziti DNS server for non-overlay lookups). Auto-detected from the host's current resolver when unset (same source as `ZITI_DNS_FALLBACK`, formatted as `udp://IP:53`). **When setting explicitly, the format must include protocol and port:** `udp://IP:PORT` or `tcp://IP:PORT` — e.g. `udp://1.1.1.1:53`. |
 
 ### Hosts Injection
 
