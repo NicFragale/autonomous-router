@@ -41,8 +41,11 @@ services:
       - REG_KEY=${REG_KEY}
 
       ## TUNNEL MODE ##
-      # "auto" for ziti chooses tunnel mode automatically.
-      #   "host" for host mode
+      # "auto" enables the tunnel listener (required for DNS routing via Ziti).
+      #   Leave unset for host-only mode (no tunnel listener, no Ziti DNS server).
+      # NOTE: this is written into config.yml at registration time only.
+      #   Changing it after the router is registered has no effect.
+      #   To apply a new value: delete ./ziti_router and re-register with a new key.
       - TUNNEL_MODE=${TUNNEL_MODE:-auto}
 
       ## VERBOSITY ##

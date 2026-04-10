@@ -419,6 +419,19 @@ FX_configure_ziti_dns() {
     # Always attempt config.yml YAML patches regardless of DNS mode
     SUBFX_dns_update_config_yaml
 
+    # In host mode there is no tunnel listener, so Ziti never opens a DNS port.
+    # Pointing systemd-resolved at a non-existent DNS server would break all DNS
+    # on the host.  Detect this early and skip the rest of DNS configuration.
+    local tunnel_count
+    tunnel_count=$(yq e '[.listeners[] | select(.binding == "tunnel")] | length' \
+        /etc/netfoundry/config.yml 2>/dev/null)
+    if [[ "${tunnel_count:-0}" -eq 0 ]]; then
+        warn "ZITI_DNS_CONFIGURE=true but no tunnel listener found in config.yml."
+        warn "Ziti does not serve DNS in host mode — skipping systemd-resolved configuration."
+        warn "To enable DNS routing, set TUNNEL_MODE=auto in your .env and re-register the router."
+        return
+    fi
+
     local mode="${ZITI_DNS_MODE:-}"
 
     if [[ -z "${mode}" ]]; then
