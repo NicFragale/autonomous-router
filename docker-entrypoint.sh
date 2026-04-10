@@ -141,8 +141,10 @@ FX_register_router() {
     local tunnel_option="--tunnelListener host"
     if [[ "${TUNNEL_MODE:-}" == "auto" ]]; then
         tunnel_option="--autoTunnelListener"
-    elif [[ -n "${TUNNEL_MODE:-}" ]]; then
-        warn "Unknown TUNNEL_MODE '${TUNNEL_MODE}'; using default host mode"
+    elif [[ -n "${TUNNEL_MODE:-host}" ]]; then
+        log "TUNNEL_MODE '${TUNNEL_MODE}'; using host mode"
+    else
+        warn "Unknown TUNNEL_MODE '${TUNNEL_MODE}'; using host mode"
     fi
 
     # If a version pin is set, tell auto_enroll to download that version now so

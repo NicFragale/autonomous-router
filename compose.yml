@@ -42,7 +42,7 @@ services:
 
       ## TUNNEL MODE ##
       # "auto" for ziti chooses tunnel mode automatically.
-      #   (unset) for host mode (default)
+      #   "host" for host mode
       - TUNNEL_MODE=${TUNNEL_MODE:-auto}
 
       ## VERBOSITY ##
