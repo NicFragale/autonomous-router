@@ -82,11 +82,13 @@ services:
       - ZITI_VERSION_OVERRIDE=${ZITI_VERSION_OVERRIDE}
 
       ## ZITI DNS CONFIG ##
-      # When ZITI_DNS_CONFIGURE=true the entrypoint will write (or update)
-      #   config.yml if ZITI_DNS_RANGE / ZITI_DNS_UPSTREAM are set.  It will
-      #   also write a systemd-resolved drop-in conf and reload it if
-      #   ZITI_DNS_MODE is also set.
-      # Requires the two extra volume mounts below (systemd + dbus).
+      # DNS management requires TUNNEL_MODE=auto.  In host mode Ziti does not
+      #   run a DNS server and all ZITI_DNS_* settings below are ignored.
+      # When TUNNEL_MODE=auto, ZITI_DNS_CONFIGURE defaults to true and the
+      #   entrypoint will: patch config.yml (dnsUpstream, dnsSvcIpRange) before
+      #   Ziti starts, then write a systemd-resolved drop-in and reload it.
+      # Set ZITI_DNS_CONFIGURE=false to suppress DNS setup even in auto mode.
+      # Requires the two extra volume mounts below (systemd).
       - ZITI_DNS_CONFIGURE=${ZITI_DNS_CONFIGURE:-true}
 
       # Route ALL DNS through the Ziti DNS server:

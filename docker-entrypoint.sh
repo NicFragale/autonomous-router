@@ -25,7 +25,13 @@
 #   REG_KEY                Registration key for initial router enrollment
 #   HTTPS_PROXY            Proxy URL (e.g. http://proxy.corp:3128)
 #   ADVERTISE_ADDRESS      Advertised IP:PORT for edge TLS listener
-#   TUNNEL_MODE            Set to "auto" for auto tunnel listener
+#   TUNNEL_MODE            Set to "auto" to enable the tunnel listener (tproxy
+#                          mode).  ALL Ziti DNS features require TUNNEL_MODE=auto
+#                          — in host mode Ziti does not open a DNS port and all
+#                          ZITI_DNS_* settings are ignored entirely.
+#                          NOTE: written into config.yml at registration time.
+#                          Changing it after enrollment requires deleting
+#                          ./ziti_router and re-registering with a new key.
 #   VERBOSE                Any non-empty value enables verbose ziti logging (-v)
 #
 #   DISABLE_AUTO_UPDATE    Set to "true" to skip controller-version checks.
@@ -33,7 +39,9 @@
 #                          crash and DNS health is monitored.  Default: version
 #                          checks run every 60 s.
 #
-#   ZITI_DNS_CONFIGURE     Set to "true" to run DNS setup at startup.
+#   ZITI_DNS_CONFIGURE     Only evaluated when TUNNEL_MODE=auto.  Set to "false"
+#                          to suppress all DNS configuration even in auto mode.
+#                          Defaults to "true" when TUNNEL_MODE=auto.
 #   ZITI_DNS_MODE          "all"  — route every DNS query through Ziti DNS
 #                          "domains" — route only ZITI_DNS_DOMAINS
 #   ZITI_DNS_IP            Ziti DNS server IP (auto-detected from LAN if unset)
@@ -42,8 +50,12 @@
 #   ZITI_DNS_FALLBACK      Fallback DNS IP (auto-detected from host if unset)
 #   ZITI_DNS_RANGE         CIDR to write into config.yml dnsSvcIpRange
 #                          e.g. "100.65.0.0/24"
-#   ZITI_DNS_UPSTREAM      Upstream DNS to write into config.yml dnsUpstream
-#                          e.g. "udp://1.1.1.1:53"
+#   ZITI_DNS_UPSTREAM      Upstream DNS written into config.yml dnsUpstream.
+#                          Auto-detected from the host's current resolver when
+#                          unset (same source as ZITI_DNS_FALLBACK, formatted
+#                          as udp://IP:53).  When set explicitly, format MUST
+#                          include protocol and port: udp://IP:PORT or
+#                          tcp://IP:PORT  e.g. "udp://1.1.1.1:53"
 #   ZITI_DNS_DISABLE_MDNS  Set to "true" to write MulticastDNS=no into the
 #                          resolved drop-in.  Required when your DNS server
 #                          serves .local records — without this, systemd-resolved
@@ -347,13 +359,19 @@ SUBFX_dns_update_config_yaml() {
         ok "dnsSvcIpRange set to ${ZITI_DNS_RANGE}"
     fi
 
-    if [[ -n "${ZITI_DNS_UPSTREAM:-}" ]]; then
-        log "Setting dnsUpstream=${ZITI_DNS_UPSTREAM} in config.yml"
-        DNS_UPSTREAM="${ZITI_DNS_UPSTREAM}" \
-            yq e '(.listeners[] | select(.binding == "tunnel") | .options.dnsUpstream) = env(DNS_UPSTREAM)' \
-            -i "${config_file}"
-        ok "dnsUpstream set to ${ZITI_DNS_UPSTREAM}"
+    # dnsUpstream is always written — Ziti must know where to forward
+    # non-overlay queries.  Auto-detect from host resolver when not set.
+    local upstream="${ZITI_DNS_UPSTREAM:-}"
+    if [[ -z "${upstream}" ]]; then
+        local raw_ip
+        raw_ip=$(SUBFX_dns_detect_fallback)
+        upstream="udp://${raw_ip}:53"
+        log "ZITI_DNS_UPSTREAM not set — auto-detected: ${upstream}"
     fi
+    DNS_UPSTREAM="${upstream}" \
+        yq e '(.listeners[] | select(.binding == "tunnel") | .options.dnsUpstream) = env(DNS_UPSTREAM)' \
+        -i "${config_file}"
+    ok "dnsUpstream set to ${upstream}"
 }
 
 # Wait until Ziti's DNS port (UDP 53) is actually accepting queries before
@@ -414,24 +432,10 @@ FX_remove_dns_conf() {
 }
 
 FX_configure_ziti_dns() {
-    log "Configuring Ziti DNS (ZITI_DNS_CONFIGURE=true)..."
-
-    # config.yml YAML patches (dnsUpstream, dnsSvcIpRange) were already applied
-    # pre-launch by SUBFX_dns_update_config_yaml so Ziti started with them set.
-    # This function now handles only the systemd-resolved configuration.
-
-    # In host mode there is no tunnel listener, so Ziti never opens a DNS port.
-    # Pointing systemd-resolved at a non-existent DNS server would break all DNS
-    # on the host.  Detect this early and skip.
-    local tunnel_count
-    tunnel_count=$(yq e '[.listeners[] | select(.binding == "tunnel")] | length' \
-        /etc/netfoundry/config.yml 2>/dev/null)
-    if [[ "${tunnel_count:-0}" -eq 0 ]]; then
-        warn "ZITI_DNS_CONFIGURE=true but no tunnel listener found in config.yml."
-        warn "Ziti does not serve DNS in host mode — skipping systemd-resolved configuration."
-        warn "To enable DNS routing, set TUNNEL_MODE=auto in your .env and re-register the router."
-        return
-    fi
+    # Only called when _DNS_ACTIVE=true (TUNNEL_MODE=auto + ZITI_DNS_CONFIGURE not false).
+    # config.yml patches (dnsUpstream, dnsSvcIpRange) were applied pre-launch.
+    # This function handles only the systemd-resolved configuration.
+    log "Configuring systemd-resolved for Ziti DNS..."
 
     local mode="${ZITI_DNS_MODE:-}"
 
@@ -799,11 +803,23 @@ else
     fi
 fi
 
+############### DNS active flag ###############
+# DNS management (config.yml patches + systemd-resolved) requires TUNNEL_MODE=auto.
+# In host mode Ziti does not open a DNS port so there is nothing to configure.
+# ZITI_DNS_CONFIGURE=false can suppress DNS setup even when TUNNEL_MODE=auto.
+_DNS_ACTIVE=false
+if [[ "${TUNNEL_MODE:-}" == "auto" && "${ZITI_DNS_CONFIGURE:-true}" != "false" ]]; then
+    _DNS_ACTIVE=true
+    log "DNS management active (TUNNEL_MODE=auto)"
+else
+    log "DNS management inactive (TUNNEL_MODE=${TUNNEL_MODE:-unset} — only active when TUNNEL_MODE=auto)"
+fi
+
 ############### Pre-launch: config.yml YAML patches ###############
 # Must run before Ziti starts — ziti reads config.yml once at startup and
 # will not pick up changes made after it is already running.
 
-if [[ "${ZITI_DNS_CONFIGURE:-}" == "true" ]]; then
+if [[ "${_DNS_ACTIVE}" == "true" ]]; then
     SUBFX_dns_update_config_yaml
 fi
 
@@ -848,7 +864,7 @@ fi
 # In "all" mode FX_configure_ziti_dns will wait for Ziti's DNS port to open
 # before touching systemd-resolved.  In "domains" mode it's safe immediately
 # since the LAN DNS continues to handle everything else.
-if [[ "${ZITI_DNS_CONFIGURE:-}" == "true" ]]; then
+if [[ "${_DNS_ACTIVE}" == "true" ]]; then
     FX_configure_ziti_dns &
 fi
 
@@ -901,7 +917,7 @@ while true; do
             /opt/openziti/bin/ziti router run config.yml ${OPS} &
             ZITI_PID=$!
             _DNS_HEALTH_FAILS=0
-            if [[ "${ZITI_DNS_CONFIGURE:-}" == "true" && -n "${ZITI_DNS_MODE:-}" ]]; then
+            if [[ "${_DNS_ACTIVE}" == "true" && -n "${ZITI_DNS_MODE:-}" ]]; then
                 FX_configure_ziti_dns &
             fi
             continue
@@ -910,7 +926,7 @@ while true; do
 
     # ── 2. DNS health check ────────────────────────────────────────────────
     # Guard: only run after DNS was successfully configured (sentinel present).
-    if [[ "${ZITI_DNS_CONFIGURE:-}" == "true" \
+    if [[ "${_DNS_ACTIVE}" == "true" \
           && -n "${ZITI_DNS_MODE:-}" \
           && -f "${_DNS_CONF_SENTINEL}" \
           && -n "${_dns_check_ip}" ]]; then
@@ -939,13 +955,13 @@ while true; do
     # ── 3. Process crash check ─────────────────────────────────────────────
     if ! kill -0 "${ZITI_PID}" 2>/dev/null; then
         warn "ziti process is not running; restarting..."
-        if [[ "${ZITI_DNS_CONFIGURE:-}" == "true" && -n "${ZITI_DNS_MODE:-}" ]]; then
+        if [[ "${_DNS_ACTIVE}" == "true" && -n "${ZITI_DNS_MODE:-}" ]]; then
             FX_remove_dns_conf
         fi
         /opt/openziti/bin/ziti router run config.yml ${OPS} &
         ZITI_PID=$!
         _DNS_HEALTH_FAILS=0
-        if [[ "${ZITI_DNS_CONFIGURE:-}" == "true" && -n "${ZITI_DNS_MODE:-}" ]]; then
+        if [[ "${_DNS_ACTIVE}" == "true" && -n "${ZITI_DNS_MODE:-}" ]]; then
             FX_configure_ziti_dns &
         fi
     fi
