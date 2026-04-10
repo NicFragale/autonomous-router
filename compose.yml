@@ -64,7 +64,7 @@ services:
       # Set to "true" to disable the loop entirely.  Ziti starts once and runs
       #   until the container stops — no mid-run restarts if the controller
       #   pushes an update.  Useful in controlled / pinned-version environments.
-      - DISABLE_AUTO_UPDATE=${DISABLE_AUTO_UPDATE:-true}
+      - DISABLE_AUTO_UPDATE=${DISABLE_AUTO_UPDATE:-false}
 
       ## VERSION PIN ##
       # Force a specific ziti binary version regardless of what the controller
@@ -84,7 +84,7 @@ services:
       #   also write a systemd-resolved drop-in conf and reload it if
       #   ZITI_DNS_MODE is also set.
       # Requires the two extra volume mounts below (systemd + dbus).
-      - ZITI_DNS_CONFIGURE=true
+      - ZITI_DNS_CONFIGURE=${ZITI_DNS_CONFIGURE:-true}
 
       # Route ALL DNS through the Ziti DNS server:
       - ZITI_DNS_MODE=all
@@ -103,12 +103,12 @@ services:
       - ZITI_DNS_FALLBACK=${ZITI_DNS_FALLBACK:-1.1.1.1}
 
       ## mDNS OVERRIDE ##
-      # Uncomment if your DNS server serves .local records and you're getting
+      #  Set to true if your DNS server serves .local records and you're getting
       #   SERVFAIL for them.  systemd-resolved intercepts .local queries on the
       #   mDNS stack before DNS routing applies; even with Domains=~.
       #   This adds MulticastDNS=no to the resolved drop-in, disabling that
       #   interception and letting .local flow through to the Ziti DNS server.
-      - ZITI_DNS_DISABLE_MDNS=true
+      - ZITI_DNS_DISABLE_MDNS=${ZITI_DNS_DISABLE_MDNS:-false}
 
       # Patch config.yml tunnel listener options (written before ziti starts).
       #   ZITI_DNS_CONFIGURE=true is NOT required for these two as they work

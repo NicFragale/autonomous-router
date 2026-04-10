@@ -69,19 +69,19 @@ All settings are controlled via environment variables in your `.env` file. The c
 
 | Variable | Default | Description |
 |---|---|---|
-| `DISABLE_AUTO_UPDATE` | `true` | Set to `true` to skip controller-version checks entirely. Ziti starts once and runs until the container stops. The crash-restart supervisor still runs. |
+| `DISABLE_AUTO_UPDATE` | `false` | Set to `true` to skip controller-version checks entirely. Ziti starts once and runs until the container stops. The crash-restart supervisor still runs. |
 | `ZITI_VERSION_OVERRIDE` | *(unset)* | Pin the router binary to a specific version, bypassing all version-match checks. Format: `vMAJOR.MINOR.PATCH` e.g. `v1.7.2`. Setting both this and `DISABLE_AUTO_UPDATE=true` gives a fully static, no-loop deployment. |
 
 ### DNS Setup (`ZITI_DNS_CONFIGURE=true`)
 
 | Variable | Default | Description |
 |---|---|---|
-| `ZITI_DNS_CONFIGURE` | *(unset)* | Set to `true` to enable DNS setup at startup. Writes a systemd-resolved drop-in and restarts resolved. Requires the `systemd` volume mounts below. |
-| `ZITI_DNS_MODE` | *(unset)* | `all` — route **every** DNS query through Ziti DNS (recommended). `domains` — route only the domains listed in `ZITI_DNS_DOMAINS`. |
+| `ZITI_DNS_CONFIGURE` | `true` | Set to `true` to enable DNS setup at startup. Writes a systemd-resolved drop-in and restarts resolved. Requires the `systemd` volume mounts below. |
+| `ZITI_DNS_MODE` | `all` | `all` — route **every** DNS query through Ziti DNS (recommended). `domains` — route only the domains listed in `ZITI_DNS_DOMAINS`. |
 | `ZITI_DNS_DOMAINS` | *(unset)* | Space-separated list of domains to route through Ziti DNS. Only used when `ZITI_DNS_MODE=domains`. e.g. `lan ziti corp internal`. |
 | `ZITI_DNS_IP` | *(auto-detected)* | IP address of the Ziti DNS server. Auto-detected from the host's default LAN route when unset. |
 | `ZITI_DNS_FALLBACK` | `1.1.1.1` | Fallback resolver written into the systemd-resolved drop-in for queries Ziti DNS cannot answer. Auto-detected from the host's current resolver when unset. |
-| `ZITI_DNS_DISABLE_MDNS` | *(unset)* | Set to `true` to add `MulticastDNS=no` to the resolved drop-in. Required when your DNS server serves `.local` records — without this, systemd-resolved intercepts `.local` on the mDNS stack (RFC 6762) before the query ever reaches Ziti DNS, returning SERVFAIL. |
+| `ZITI_DNS_DISABLE_MDNS` | `false` | Set to `true` to add `MulticastDNS=no` to the resolved drop-in. Required when your DNS server serves `.local` records — without this, systemd-resolved intercepts `.local` on the mDNS stack (RFC 6762) before the query ever reaches Ziti DNS, returning SERVFAIL. |
 | `ZITI_DNS_WAIT_TIMEOUT` | `60` | Seconds to wait for Ziti DNS to become reachable after Ziti starts. Increase if your controller is slow to provision the DNS listener. |
 | `ZITI_DNS_HEALTH_THRSH` | `3` | Consecutive failed DNS probes before the resolver reverts to host DNS and Ziti is restarted. Each probe runs once per supervisor loop iteration (~60 s), so the default triggers after ~3 min of unresponsive Ziti DNS. |
 
