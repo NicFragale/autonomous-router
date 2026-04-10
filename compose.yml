@@ -111,12 +111,12 @@ services:
       - ZITI_DNS_DISABLE_MDNS=${ZITI_DNS_DISABLE_MDNS:-false}
 
       # Patch config.yml tunnel listener options (written before ziti starts).
-      #   ZITI_DNS_CONFIGURE=true is NOT required for these two as they work
-      #   independently and only need yq (included in the image).
-      - ZITI_DNS_RANGE=${ZITI_DNS_RANGE:-100.65.0.0/24}
+      #   ZITI_DNS_CONFIGURE=true is required for this.
+      - ZITI_DNS_RANGE=${ZITI_DNS_RANGE:-}
 
       # Upstream DNS written into config.yml dnsUpstream.
       #   Auto-detected from the host's current resolver when unset.
+      #   ZITI_DNS_CONFIGURE=true is required for this.
       #   IMPORTANT: when set explicitly, format MUST include protocol and port:
       #     udp://IP:PORT  or  tcp://IP:PORT  — e.g. udp://1.1.1.1:53
       #- ZITI_DNS_UPSTREAM=udp://1.1.1.1:53

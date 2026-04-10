@@ -89,7 +89,7 @@ All settings are controlled via environment variables in your `.env` file. The c
 
 | Variable | Default | Description |
 |---|---|---|
-| `ZITI_DNS_RANGE` | `100.65.0.0/24` | CIDR written into `config.yml` as `dnsSvcIpRange` (overlay service address pool). |
+| `ZITI_DNS_RANGE` | *(unset)* | CIDR written into `config.yml` as `dnsSvcIpRange` (overlay service address pool). If unset will default to `100.64.0.0/10`. |
 | `ZITI_DNS_UPSTREAM` | *(auto-detected)* | Upstream DNS written into `config.yml` as `dnsUpstream` (used by the Ziti DNS server for non-overlay lookups). Auto-detected from the host's current resolver when unset (same source as `ZITI_DNS_FALLBACK`, formatted as `udp://IP:53`). **When setting explicitly, the format must include protocol and port:** `udp://IP:PORT` or `tcp://IP:PORT` — e.g. `udp://1.1.1.1:53`. |
 
 ### Hosts Injection
