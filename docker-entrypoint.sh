@@ -416,12 +416,13 @@ FX_remove_dns_conf() {
 FX_configure_ziti_dns() {
     log "Configuring Ziti DNS (ZITI_DNS_CONFIGURE=true)..."
 
-    # Always attempt config.yml YAML patches regardless of DNS mode
-    SUBFX_dns_update_config_yaml
+    # config.yml YAML patches (dnsUpstream, dnsSvcIpRange) were already applied
+    # pre-launch by SUBFX_dns_update_config_yaml so Ziti started with them set.
+    # This function now handles only the systemd-resolved configuration.
 
     # In host mode there is no tunnel listener, so Ziti never opens a DNS port.
     # Pointing systemd-resolved at a non-existent DNS server would break all DNS
-    # on the host.  Detect this early and skip the rest of DNS configuration.
+    # on the host.  Detect this early and skip.
     local tunnel_count
     tunnel_count=$(yq e '[.listeners[] | select(.binding == "tunnel")] | length' \
         /etc/netfoundry/config.yml 2>/dev/null)
@@ -796,6 +797,14 @@ else
         FX_upgrade_ziti
         ZITI_VERSION=$(/opt/openziti/bin/ziti -v 2>/dev/null)
     fi
+fi
+
+############### Pre-launch: config.yml YAML patches ###############
+# Must run before Ziti starts — ziti reads config.yml once at startup and
+# will not pick up changes made after it is already running.
+
+if [[ "${ZITI_DNS_CONFIGURE:-}" == "true" ]]; then
+    SUBFX_dns_update_config_yaml
 fi
 
 ############### Pre-launch: /etc/hosts injection ###############
