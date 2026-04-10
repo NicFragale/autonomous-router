@@ -85,7 +85,7 @@ All settings are controlled via environment variables in your `.env` file. The c
 | `ZITI_DNS_WAIT_TIMEOUT` | `60` | Seconds to wait for Ziti DNS to become reachable after Ziti starts. Increase if your controller is slow to provision the DNS listener. |
 | `ZITI_DNS_HEALTH_THRSH` | `3` | Consecutive failed DNS probes before the resolver reverts to host DNS and Ziti is restarted. Each probe runs once per supervisor loop iteration (~60 s), so the default triggers after ~3 min of unresponsive Ziti DNS. |
 
-### Ziti Config Patches (independent of `ZITI_DNS_CONFIGURE`)
+### Ziti Config Patches (`ZITI_DNS_CONFIGURE=true`)
 
 | Variable | Default | Description |
 |---|---|---|
